@@ -1,10 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for
+from flask_socketio import SocketIO, emit
 import json
 
 app = Flask(__name__)
+socketio = SocketIO(app)  # <-- Use SocketIO
+
+NUM_JUDGES = 3  # Change this if you want a different number of judges
 
 judges_data = [
-    {"dmg": None, "agg": None, "ctrl": None} for _ in range(3)
+    {"dmg": None, "agg": None, "ctrl": None} for _ in range(NUM_JUDGES)
 ]
 
 DAMAGE_CHOICES = ["8-0", "7-1", "6-2", "5-3", "4-4", "3-5", "2-6", "1-7", "0-8"]
@@ -73,32 +77,23 @@ def save_scores():
 @app.route("/")
 def index():
     winner = calculate_winner()
-    return render_template("overview.html", judges=judges_data, winner=winner)
-
-@app.route("/judge/<int:judge_id>", methods=["GET", "POST"])
-def judge(judge_id):
-    if not (1 <= judge_id <= 3):
-        return "Invalid judge ID", 404
-
-    judge_idx = judge_id - 1
-
-    if request.method == "POST":
-        judges_data[judge_idx]["dmg"] = request.form["dmg"]
-        judges_data[judge_idx]["agg"] = request.form["agg"]
-        judges_data[judge_idx]["ctrl"] = request.form["ctrl"]
-        save_scores()
-        return redirect(url_for("judge", judge_id=judge_id))
-
-    current_judge = judges_data[judge_idx]
-
+    # Send all judge data to template
+    judges_with_totals = []
+    for judge in judges_data:
+        if None in judge.values():
+            total_red = total_white = None
+        else:
+            dmg_a, dmg_b = parse_score(judge["dmg"])
+            agg_a, agg_b = parse_score(judge["agg"])
+            ctrl_a, ctrl_b = parse_score(judge["ctrl"])
+            total_red = dmg_a + agg_a + ctrl_a
+            total_white = dmg_b + agg_b + ctrl_b
+        judges_with_totals.append({
+            **judge,
+            "total_red": total_red if 'total_red' in locals() else None,
+            "total_white": total_white if 'total_white' in locals() else None,
+        })
     return render_template(
-        "judge.html",
-        judge_number=judge_id,
-        judge=current_judge,
-        damage_choices=DAMAGE_CHOICES,
-        aggression_choices=AGGRESSION_CHOICES,
-        control_choices=CONTROL_CHOICES,
-    )
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+        "overview.html",
+        judges**
+
