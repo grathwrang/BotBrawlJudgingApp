@@ -112,7 +112,7 @@ def judge(judge_id):
         judges_data[judge_idx]["ctrl"] = request.form["ctrl"]
         save_scores()
         # Emit update to all connected clients
-        socketio.emit('update_overview', broadcast=True)
+        socketio.emit('update_overview')
         return redirect(url_for("judge", judge_id=judge_id))
 
     # The GET request should render the template, so this must be indented inside the function
