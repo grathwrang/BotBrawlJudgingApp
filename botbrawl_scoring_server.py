@@ -115,13 +115,14 @@ def judge(judge_id):
         socketio.emit('update_overview', broadcast=True)
         return redirect(url_for("judge", judge_id=judge_id))
 
+    # The GET request should render the template, so this must be indented inside the function
     return render_template(
         "judge.html",
         judge_number=judge_id,
         damage_choices=DAMAGE_CHOICES,
         aggression_choices=AGGRESSION_CHOICES,
         control_choices=CONTROL_CHOICES,
-        current=judges_data[judge_idx]
+        judge=judges_data[judge_idx]  # <--- Pass as 'judge'
     )
 
 if __name__ == "__main__":
