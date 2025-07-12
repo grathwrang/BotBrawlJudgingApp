@@ -95,5 +95,34 @@ def index():
         })
     return render_template(
         "overview.html",
-        judges**
-
+        judges=judges_with_totals,
+        winner=winner
+    )
+
+@app.route("/judge/<int:judge_id>", methods=["GET", "POST"])
+def judge(judge_id):
+    if not (1 <= judge_id <= NUM_JUDGES):
+        return "Invalid judge ID", 404
+
+    judge_idx = judge_id - 1
+
+    if request.method == "POST":
+        judges_data[judge_idx]["dmg"] = request.form["dmg"]
+        judges_data[judge_idx]["agg"] = request.form["agg"]
+        judges_data[judge_idx]["ctrl"] = request.form["ctrl"]
+        save_scores()
+        # Emit update to all connected clients
+        socketio.emit('update_overview', broadcast=True)
+        return redirect(url_for("judge", judge_id=judge_id))
+
+    return render_template(
+        "judge.html",
+        judge_number=judge_id,
+        damage_choices=DAMAGE_CHOICES,
+        aggression_choices=AGGRESSION_CHOICES,
+        control_choices=CONTROL_CHOICES,
+        current=judges_data[judge_idx]
+    )
+
+if __name__ == "__main__":
+    socketio.run(app, debug=True)
